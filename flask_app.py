@@ -362,7 +362,7 @@ def home():
         plt.savefig('static/'+fname)
 
     now = time.time()
-    file_list = os.listdir("static")
+    file_list = os.listdir("static/")
     for f in file_list:
         if f.find(".png") >= 0:
             age = int(now-os.path.getmtime("static/"+f))
@@ -422,5 +422,5 @@ global_formlist.append(FormItemStartSetup(                             "Days til
 
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": # I think this is false on pythonanywhere.com
     app.run(debug=True)
