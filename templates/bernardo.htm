@@ -1,0 +1,266 @@
+<html>
+<head>
+</head>
+<body>
+<FONT FACE="Arial">
+<h1>{{defid}}</h1>
+
+
+
+
+Please select parameters then press the "submit" button.</p>
+
+<!--<form action="/action_page.php">-->
+<form action="/" method="POST">
+
+<table>
+<tr>
+<td>
+    <table>
+    <tr><td colspan=2 bgcolor=#ddbbdd align=center><b>Parameters</b></td></tr>
+    {%for f in fl%}
+        {% if f.type != "flag" %}
+            <tr>
+                <td bgcolor=#ddbbdd>{{f.form_var}}:{{f.text_to_display}}</td>
+
+                    <td bgcolor=#ddbbdd><input type="text" id="{{f.form_var}}" name="{{f.form_var}}" value="{{f.user_value}}"></td>
+
+
+            </tr>
+        {% endif %}
+    {%endfor%}
+    </table>
+</td>
+<td>
+    <table>
+    <tr><td colspan=2 bgcolor=#dddddd align=center><b>Graphs to display</b></td></tr>
+    {%for f in fl%}
+        {% if f.type == "flag" %}
+            <tr>
+                <td bgcolor=#dddddd>{{f.form_var}}:{{f.text_to_display}}</td>
+
+                    <td bgcolor=#dddddd><input type="checkbox" id="{{f.form_var}}" name="{{f.form_var}}" value="flag"
+                            {% if f.user_value == "True" %}
+                                checked
+                            {% endif %}
+                    ></td>
+
+            </tr>
+        {% endif %}
+    {%endfor%}
+    </table>
+</td>
+</tr>
+</table>
+
+<input type="hidden"   id="custId" name="custId" value="{{defid}}"><br>
+
+
+<font color=#aa0000>
+
+    {%for f in fl%}
+        {% if f.type != "flag" %}
+            {% if f.user_error_message != "" %}
+                Error in "{{f.text_to_display}}" : {{f.user_error_message}}<br>
+            {% endif %}
+        {% endif %}
+    {%endfor%}
+</font>
+
+<!--
+<input type="submit" value="Submit" style="font-weight: bold;">
+-->
+</form>
+
+
+
+    <form id="myform">
+      <input id="input1" type="hidden" id="name" name="name" value="ImageName{{defid}}" required>
+      <input id="hidden_input" type="hidden"   id="CustId" name="CustId" value="{{defid}}">
+    </form>
+    <button id="go" onclick="function_called_when_user_clicks_go();" >Go!</button>
+	<progress id="prog_id" value="0" max="100"></progress>
+
+
+	<div id="qrep">report</div>
+
+	<img id="result_im">
+
+
+<div id = "diag_id" style="
+height: 400px;
+font-size: 10px;
+width: 820px;
+color: #ffffff;
+background-color: #000000;
+overflow: auto;
+display: flex; flex-direction: column-reverse;
+">
+{% autoescape false %}{{distr}}{% endautoescape %}
+</div>
+
+
+
+
+    <script>
+       window.job_name = "";
+       window.requests = "";
+
+       function function_called_when_user_clicks_go()
+	   {
+           var myformthing = document.getElementById("myform");
+           var input = document.getElementById("input1");
+           var hid_in = document.getElementById("hidden_input");
+           var RegEx = /^[a-zA-Z0-9]+$/;
+           var Valid = RegEx.test(input.value);
+
+           if (Valid)
+		   {
+				window.job_name = input.value;
+
+				// xhttp is an XMLHttpRequest thingy which is for the client to request info from the server
+				var xhttp = new XMLHttpRequest();
+
+				xhttp.onload =  function()
+								{
+									result=JSON.parse(xhttp.response)
+									window.requests = setTimeout(check_image_progress, 500);
+								};
+
+				// AFAICT these next two lines will effectively launch the time consuming process by virtue of calling the /begin_crunching handler in flask python code
+				xhttp.open("POST", "/begin_crunching", true);
+				xhttp.send(JSON.stringify({
+											"job_name":input.value,
+											"CustId":hid_in.value,
+											"nag":document.getElementById( "nag").value,
+											"tsm":document.getElementById( "tsm").value,
+											"npc":document.getElementById( "npc").value,
+											"tgpd":document.getElementById( "tgpd").value,
+											"nir":document.getElementById( "nir").value,
+											"maxst":document.getElementById( "maxst").value,
+											"tdpc":document.getElementById( "tdpc").value,
+											"tdbp":document.getElementById( "tdbp").value,
+											"tsp":document.getElementById( "tsp").value,
+
+											"avsp":document.getElementById( "avsp").checked,
+											"sp":document.getElementById( "sp").checked,
+											"sfs":document.getElementById( "sfs").checked,
+											"gp":document.getElementById( "gp").checked,
+											"mon":document.getElementById( "mon").checked,
+											"wellmon":document.getElementById( "wellmon").checked,
+											"wellcon":document.getElementById( "wellcon").checked,
+											"wellmoncon":document.getElementById( "wellmoncon").checked,
+											"dtfe":document.getElementById( "dtfe").checked
+											}));
+
+				var gobut = document.getElementById("go");
+				gobut.disabled = true;
+				gobut.innerHTML = "Please wait while processing";
+           }
+           else
+		   {
+               alert("input not valid, only alphanumeric characters");
+           }
+        }
+
+       function check_image_progress()
+	   {
+			var hid_in = document.getElementById("hidden_input");
+           var xhttp = new XMLHttpRequest();
+           xhttp.onload = function()
+		   {
+			   result=JSON.parse(xhttp.response)
+			   //var progressBarEl = document.getElementsByTagName("progress")[0];
+			   var progressBarEl = document.getElementById("prog_id");
+			   progressBarEl.value=result["progress"];
+
+
+				var found = false;
+				var foundpos = -1;
+				var i;
+				for (i = 0;i < result["jobsaheadofus"];i++)
+				{
+						if (result["inqueue"][i] == window.job_name)
+						{
+							foundpos = i;
+							found = true;
+						}
+				}
+				var pos_in_queue = foundpos+1;
+
+				qreport = document.getElementById("qrep");
+				if (found)
+				{
+					qreport.innerHTML="There are "+pos_in_queue.toString()+" jobs ahead of us";
+				}
+				else
+				{
+					qreport.innerHTML="processing now";
+				}
+
+
+
+			   var diagboxvar = document.getElementById("diag_id");
+			   diagboxvar.innerHTML=result["diagstring"];
+
+			   if (result["is_finished"] == true)
+			   {
+					clearTimeout(window.requests);
+					window.requests = setTimeout(get_image,5);
+			   }
+			   else
+			   {
+					// if not finished then go round again
+					window.requests = setTimeout(check_image_progress, 500);
+			   }
+           };
+           xhttp.open("POST", "/get_progress", true);
+           xhttp.send(JSON.stringify({"job_name":window.job_name,"CustId":hid_in.value}));
+        }
+
+       function get_image()
+	   {
+			var hid_in = document.getElementById("hidden_input");
+			var xhttp = new XMLHttpRequest();
+
+           xhttp.onload = function()
+		   {
+			   result=JSON.parse(xhttp.response)
+			   img_base64 = result[window.job_name];
+			   var progressBarEl = document.getElementsByTagName("progress")[0];
+			   progressBarEl.value=100;
+
+			   var diagboxvar = document.getElementById("diag_id");
+			   diagboxvar.innerHTML=result["diagstring"];
+
+			   clearTimeout(window.requests);
+			   var imgEl = document.getElementsByTagName("img")[0];
+			   console.log(result)
+			   imgEl.src = 'data:image/jpeg;base64,'+img_base64;
+
+
+			   document.getElementById("result_im").src="static/"+result["resimname"];
+
+				var gobut = document.getElementById("go");
+				gobut.disabled = false;
+				gobut.innerHTML = "Go again?";
+
+				var qs = document.getElementById("qrep");
+				
+				qs.innerHTML = "";
+           };
+
+           xhttp.open("POST", "/get_image", true);
+           xhttp.send(JSON.stringify({"job_name":window.job_name,"CustId":hid_in.value}));
+        }
+
+		//setTimeout(function() { document.getElementsByTagName("button")[0].disabled=false; }, 100);
+
+		function hexToBase64(str)
+		{
+			return btoa(String.fromCharCode.apply(null, str.replace(/\r|\n/g, "").replace(/([\da-fA-F]{2}) ?/g, "0x$1 ").replace(/ +$/, "").split(" ")));
+		}
+
+    </script>
+</body>
+</html>
