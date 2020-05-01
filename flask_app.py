@@ -42,6 +42,12 @@ def run_scheduler(app):
             next_job_name = app.jobs_to_be_processed_queue.get()
             print(f"No jobs being processed so scheduler will start processing the next image {next_job_name} from the queue")
             app.function_to_actually_crunch_the_numbers(next_job_name, app)
+        else: # no jobs in queue - make sure we zap arrays
+            app.global_job_dictionary.clear()
+            app.jobs_completed.clear()
+            app.job_processing_status_dict.clear()
+            app.active_processing_threads.clear()
+            
 
 def function_to_actually_crunch_the_numbers(job_name, app):
     global global_diagnostic_strings,global_number_diff_each_image
@@ -176,7 +182,7 @@ def render_basic_whole_webpage():
     global_diagnostic_strings += "render_basic_whole_webpage() idrff="+str(id_read_from_form)+"<br>"
 
 
-    fname="dummie_may_not_even_exist.png"
+    fname="zilch"
 
     return flask.render_template('bernardo.htm',
                                         queue_size = flask.current_app.jobs_to_be_processed_queue.qsize(),
@@ -232,7 +238,7 @@ def server_process_request_to_begin_crunching():
                                         "wellmoncon":json.loads(flask.request.data)["wellmoncon"],
                                         "dtfe":json.loads(flask.request.data)["dtfe"],
                                         "uniquenum":global_number_diff_each_image,
-                                        "resfilename":"res"+str(global_number_diff_each_image)+"_"+str(random.randint(10000,90000))+".png"
+                                        "resfilename":"res"+str(global_number_diff_each_image)+"_"+str(random.randint(10000,90000))+".png"  # the random number is just to avoid browser cache 
                                         }
 
 

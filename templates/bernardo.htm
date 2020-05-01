@@ -1,18 +1,43 @@
+
 <html>
 <head>
+	<style>
+		#diag_id {
+		  display:none;
+		}
+		#prog_id {
+		  display:none;
+		}		#hidden_input {
+		  display:none;
+		}
+		#input1 {
+		  display:none;
+		}
+		table, th, td {
+		<!--
+		  border: 1px solid black;
+		  border-collapse: collapse;
+		  -->
+		}		
+		#errlist {
+		color:red;
+		}
+		</style>
 </head>
-<body>
+<body bgcolor=#eeeeee>
 <FONT FACE="Arial">
-<h1>{{defid}}</h1>
 
 
+<h2>Agent based model of money.</h2>
 
 
 Please select parameters then press the "submit" button.</p>
 
 <!--<form action="/action_page.php">-->
-<form action="/" method="POST">
+<form action="/" method="POST" >
 
+      <input id="input1" type="hidden" display="none" id="name" name="name" value="ImageName{{defid}}" required>
+      <input id="hidden_input" type="hidden"   id="CustId" name="CustId" value="{{defid}}">
 <table>
 <tr>
 <td>
@@ -21,7 +46,7 @@ Please select parameters then press the "submit" button.</p>
     {%for f in fl%}
         {% if f.type != "flag" %}
             <tr>
-                <td bgcolor=#ddbbdd>{{f.form_var}}:{{f.text_to_display}}</td>
+                <td bgcolor=#ddbbdd>{{f.text_to_display}}</td>
 
                     <td bgcolor=#ddbbdd><input type="text" id="{{f.form_var}}" name="{{f.form_var}}" value="{{f.user_value}}"></td>
 
@@ -37,7 +62,7 @@ Please select parameters then press the "submit" button.</p>
     {%for f in fl%}
         {% if f.type == "flag" %}
             <tr>
-                <td bgcolor=#dddddd>{{f.form_var}}:{{f.text_to_display}}</td>
+                <td bgcolor=#dddddd>{{f.text_to_display}}</td>
 
                     <td bgcolor=#dddddd><input type="checkbox" id="{{f.form_var}}" name="{{f.form_var}}" value="flag"
                             {% if f.user_value == "True" %}
@@ -53,36 +78,30 @@ Please select parameters then press the "submit" button.</p>
 </tr>
 </table>
 
-<input type="hidden"   id="custId" name="custId" value="{{defid}}"><br>
+<input type="hidden"   id="custId" name="custId" value="{{defid}}">
 
 
-<font color=#aa0000>
 
-    {%for f in fl%}
-        {% if f.type != "flag" %}
-            {% if f.user_error_message != "" %}
-                Error in "{{f.text_to_display}}" : {{f.user_error_message}}<br>
-            {% endif %}
-        {% endif %}
-    {%endfor%}
-</font>
+
+<div id="errlist" color="red">
+
+</div>
+
+
+
 
 <!--
 <input type="submit" value="Submit" style="font-weight: bold;">
 -->
+
 </form>
 
 
-
-    <form id="myform">
-      <input id="input1" type="hidden" id="name" name="name" value="ImageName{{defid}}" required>
-      <input id="hidden_input" type="hidden"   id="CustId" name="CustId" value="{{defid}}">
-    </form>
-    <button id="go" onclick="function_called_when_user_clicks_go();" >Go!</button>
+    <button id="go" onclick="function_called_when_user_clicks_go();" >Submit</button>
 	<progress id="prog_id" value="0" max="100"></progress>
 
 
-	<div id="qrep">report</div>
+	<div id="qrep">&nbsp</div>
 
 	<img id="result_im">
 
@@ -94,7 +113,7 @@ width: 820px;
 color: #ffffff;
 background-color: #000000;
 overflow: auto;
-display: flex; flex-direction: column-reverse;
+<!-- display: flex; flex-direction: column-reverse;-->
 ">
 {% autoescape false %}{{distr}}{% endautoescape %}
 </div>
@@ -106,13 +125,68 @@ display: flex; flex-direction: column-reverse;
        window.job_name = "";
        window.requests = "";
 
-       function function_called_when_user_clicks_go()
+	function isNormalInteger(str) {
+		str = str.trim();
+		if (!str) {
+			return false;
+		}
+		str = str.replace(/^0+/, "") || "0";
+		var n = Math.floor(Number(str));
+		return n !== Infinity && String(n) === str && n > 0;
+	}
+		function isNormalFloat(str) {
+		str = str.trim();
+		if (!str) {
+			return false;
+		}
+		str = str.replace(/^0+/, "") || "0";
+		var n = Number(str);
+		return n !== Infinity && n > 0;
+	}
+
+		function function_called_when_user_clicks_go()
+		{
+			var ok = true;
+			var str = "";
+
+
+			if (!isNormalInteger(document.getElementById( "nag").value) || Number(document.getElementById( "nag").value) < 2  || Number(document.getElementById( "nag").value) > 100) {ok=false; str += "Bad num agents (must be in range 2 to 100)<br>"}
+
+			if (!isNormalFloat((document.getElementById( "tsm").value))) {ok=false; str += "Bad typical starting money<br>"}
+			if (!isNormalInteger(document.getElementById( "npc").value)) {ok=false; str += "Bad num agents for price comparison<br>"}
+
+			if (!isNormalFloat(document.getElementById( "tgpd").value)) {ok=false; str += "Bad typical goods made per day<br>"}
+			if (!isNormalInteger(document.getElementById( "nir").value) || Number(document.getElementById( "nir").value) > 250000) {ok=false; str += "Bad num iterations to run (min 1, max 250000)<br>"}
+			if (!isNormalFloat(document.getElementById( "maxst").value)) {ok=false; str += "Bad max stock<br>"}
+			if (!isNormalFloat(document.getElementById( "tdpc").value)) {ok=false; str += "Bad typical days between price changes<br>"}
+			if (!isNormalFloat(document.getElementById( "tdbp").value)) {ok=false; str += "Bad typical days between purchases<br>"}
+			if (!isNormalFloat(document.getElementById( "tsp").value)) {ok=false; str += "Bad typical starting price<br>"}
+			if (Number(document.getElementById( "npc").value) > Number(document.getElementById( "nag").value))  {ok=false; str += "Num agents for price comparison must be <= number of agents<br>"}
+			
+			if (ok)
+			{
+				document.getElementById("errlist").innerHTML="";
+				function_called_when_user_clicks_go_II();
+			}
+			else
+			{
+				document.getElementById("errlist").innerHTML=str;
+			}
+		}
+
+       function function_called_when_user_clicks_go_II()
 	   {
            var myformthing = document.getElementById("myform");
            var input = document.getElementById("input1");
            var hid_in = document.getElementById("hidden_input");
            var RegEx = /^[a-zA-Z0-9]+$/;
            var Valid = RegEx.test(input.value);
+			
+
+
+			   var progressBar = document.getElementById("prog_id");
+			   progressBar.value=0;
+			   progressBar.style.display="inline";
 
            if (Valid)
 		   {
@@ -152,7 +226,7 @@ display: flex; flex-direction: column-reverse;
 											"wellmoncon":document.getElementById( "wellmoncon").checked,
 											"dtfe":document.getElementById( "dtfe").checked
 											}));
-
+				
 				var gobut = document.getElementById("go");
 				gobut.disabled = true;
 				gobut.innerHTML = "Please wait while processing";
@@ -170,7 +244,7 @@ display: flex; flex-direction: column-reverse;
            xhttp.onload = function()
 		   {
 			   result=JSON.parse(xhttp.response)
-			   //var progressBarEl = document.getElementsByTagName("progress")[0];
+
 			   var progressBarEl = document.getElementById("prog_id");
 			   progressBarEl.value=result["progress"];
 
@@ -227,34 +301,38 @@ display: flex; flex-direction: column-reverse;
 		   {
 			   result=JSON.parse(xhttp.response)
 			   img_base64 = result[window.job_name];
-			   var progressBarEl = document.getElementsByTagName("progress")[0];
-			   progressBarEl.value=100;
+			   var progressBar = document.getElementById("prog_id");
+			   progressBar.value=100;
+			   progressBar.style.display="none";
 
 			   var diagboxvar = document.getElementById("diag_id");
 			   diagboxvar.innerHTML=result["diagstring"];
 
 			   clearTimeout(window.requests);
-			   var imgEl = document.getElementsByTagName("img")[0];
-			   console.log(result)
-			   imgEl.src = 'data:image/jpeg;base64,'+img_base64;
 
 
-			   document.getElementById("result_im").src="static/"+result["resimname"];
+				if (result["resimname"] == "zilch")
+				{
+					document.getElementById("result_im").src="//:0";
+				}
+				else
+				{
+					document.getElementById("result_im").src="static/"+result["resimname"];
+				}
 
 				var gobut = document.getElementById("go");
 				gobut.disabled = false;
-				gobut.innerHTML = "Go again?";
+				gobut.innerHTML = "Submit";
 
 				var qs = document.getElementById("qrep");
 				
-				qs.innerHTML = "";
+				qs.innerHTML = "&nbsp";
            };
 
            xhttp.open("POST", "/get_image", true);
            xhttp.send(JSON.stringify({"job_name":window.job_name,"CustId":hid_in.value}));
         }
 
-		//setTimeout(function() { document.getElementsByTagName("button")[0].disabled=false; }, 100);
 
 		function hexToBase64(str)
 		{
