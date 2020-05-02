@@ -14,11 +14,15 @@ import copy
 import matplotlib
 matplotlib.use('Agg') # because https://stackoverflow.com/questions/49921721/runtimeerror-main-thread-is-not-in-main-loop-with-matplotlib-and-flask
 import matplotlib.pyplot as plt
+import datetime
 
 
 
 #from flask_abm import *
 import flask_abm
+
+print("*"*70)
+print("Running now ",datetime.datetime.now(),"*"*30)
 
 id_read_from_form=1
 user_counter = 1
@@ -30,26 +34,28 @@ global_number_diff_each_image = 1
 ### You create a Queue and start a scheduler, Start flask after that
 def run_scheduler(app):
     global global_diagnostic_strings
-    print("run_scheduler")
+    #print("run_scheduler")
     sleep_time = 1.5
     while True:
         time.sleep(sleep_time)
-        print('jobs Completed ->',app.jobs_completed)
+        #print('jobs Completed ->',app.jobs_completed)
 
         if app.jobs_to_be_processed_queue.qsize() > 0:
-            print(f"qsize={app.jobs_to_be_processed_queue.qsize()}")
+            print("noticed job in queue, lets process it! ", datetime.datetime.now())
+            #print(f"qsize={app.jobs_to_be_processed_queue.qsize()}")
             global_diagnostic_strings += "queue size = "+str(app.jobs_to_be_processed_queue.qsize()) + "<br>"
             next_job_name = app.jobs_to_be_processed_queue.get()
-            print(f"No jobs being processed so scheduler will start processing the next image {next_job_name} from the queue")
+            #print(f"No jobs being processed so scheduler will start processing the next image {next_job_name} from the queue")
             app.function_to_actually_crunch_the_numbers(next_job_name, app)
         else: # no jobs in queue - make sure we zap arrays
             app.global_job_dictionary.clear()
             app.jobs_completed.clear()
             app.job_processing_status_dict.clear()
             app.active_processing_threads.clear()
-            
+
 
 def function_to_actually_crunch_the_numbers(job_name, app):
+    print("function_to_actually_crunch_the_numbers start ", datetime.datetime.now())
     global global_diagnostic_strings,global_number_diff_each_image
     global_number_diff_each_image += 1
     huge_number = 100
@@ -73,6 +79,8 @@ def function_to_actually_crunch_the_numbers(job_name, app):
 
     global_diagnostic_strings += "job "+job_name+" using "+ str(flask_abm.econ_iters_to_do_this_time) +" agents<br>"
 
+    print("loop start ", datetime.datetime.now())
+
     for i in range(0, flask_abm.econ_iters_to_do_this_time):
         flask_abm.iterate()
         flask_abm.append_current_state_to_history()
@@ -81,11 +89,16 @@ def function_to_actually_crunch_the_numbers(job_name, app):
         if int(perc) % 5 == 0:
             app.job_processing_status_dict[job_name] = str(perc)
 
+    print("loop done ", datetime.datetime.now())
 
     flask_abm.collect_data_for_plotting_histograms()
+    print("collect data done ", datetime.datetime.now())
 
-    do_all_plots(job_name, app)   
+    do_all_plots(job_name, app)
+    print("post done ", datetime.datetime.now())
+
     plt.savefig("static/"+img_name)
+    print("save done ", datetime.datetime.now())
 
     #for i in range(huge_number):
     #    # some maths
@@ -103,31 +116,31 @@ def function_to_actually_crunch_the_numbers(job_name, app):
 
     img.save(chunk_of_ram, "jpeg")
     app.jobs_completed[job_name] = {"status":1,"file": chunk_of_ram}
-    print(f"IC from function: {app.jobs_completed} **************************")
-    print("Error chase A")
+    #print(f"IC from function: {app.jobs_completed} **************************")
+    #print("Error chase A")
 
     if app.job_processing_status_dict.get("num_jobs_completed",False):
-        print("Error chase B - if was true")
+        #print("Error chase B - if was true")
         global_diagnostic_strings += "app.job_processing_status_dict['num_jobs_completed'] incremented from "+str(app.job_processing_status_dict["num_jobs_completed"])+"<br>"
         app.job_processing_status_dict["num_jobs_completed"] += 1
     else:
-        print("Error chase C - if was false")
+        #print("Error chase C - if was false")
         app.job_processing_status_dict["num_jobs_completed"] = 1
         global_diagnostic_strings += "app.job_processing_status_dict['num_jobs_completed'] being set to 1<br>"
     print("Error chase D")
 
-    del app.job_processing_status_dict[job_name]     # The del keyword is used to delete objects. 
-    print("Error chase E")
+    del app.job_processing_status_dict[job_name]     # The del keyword is used to delete objects.
+    #print("Error chase E")
     #del app.global_job_dictionary[job_name]
-    print("Error chase F")
-    print("About to return [",img_name,"]")
-    print("Error chase G")
-    dic = {"resimname":"dummievaluebugchasing.png"}
-    print("Error chase G2")
+    #print("Error chase F")
+    #print("About to return [",img_name,"]")
+    #print("Error chase G")
+    #dic = {"resimname":"dummievaluebugchasing.png"}
+    #print("Error chase G2")
 
     #ret = flask.jsonify(dic)
 
-    print("Error chase H")
+    #print("Error chase H")
     #return ret
     #return flask.jsonify({"resimname":"dummievaluebugchasing.png"}) #process sucessful
     #return flask.jsonify({"resimname":img_name}) #process sucessful
@@ -147,7 +160,7 @@ class Webserver(flask.Flask):
         self.jobs_completed = {}
         self.jobs_to_be_processed_queue = Queue(maxsize=queue_MAXSIZE)
         self.function_to_actually_crunch_the_numbers = function_to_actually_crunch_the_numbers
-        self.scheduler_thread = threading.Thread(target=scheduler_func, args=(self,))
+        self.scheduler_thread = threading.Thread(target=scheduler_func, args=(self,),daemon=True)
         self.global_image_number = 1
 
 app = Webserver(__name__,
@@ -166,7 +179,7 @@ def render_basic_whole_webpage():
 
     formlist = copy.deepcopy(global_formlist)
 
-    print("render_basic_whole_webpage()")
+    #print("render_basic_whole_webpage()")
 
     id_read_from_form = -1
     user_counter += 1
@@ -195,7 +208,7 @@ def render_basic_whole_webpage():
 
                                         thestring='/static/'+fname,
                                         defid=id_for_hidden_thing,
-                                        params1="",#url_for('/mysite/static'),
+                                        params1="",#url_for('/static'),
                                         params2="Python version "+sys.version,
                                         params3="Matplotlib version "+matplotlib.__version__,
                                         params4="os.getcwd() is "+os.getcwd(),
@@ -238,7 +251,7 @@ def server_process_request_to_begin_crunching():
                                         "wellmoncon":json.loads(flask.request.data)["wellmoncon"],
                                         "dtfe":json.loads(flask.request.data)["dtfe"],
                                         "uniquenum":global_number_diff_each_image,
-                                        "resfilename":"res"+str(global_number_diff_each_image)+"_"+str(random.randint(10000,90000))+".png"  # the random number is just to avoid browser cache 
+                                        "resfilename":"res"+str(global_number_diff_each_image)+"_"+str(random.randint(10000,90000))+".png"  # the random number is just to avoid browser cache
                                         }
 
 
@@ -258,10 +271,10 @@ def server_asked_to_return_progress():
     global global_diagnostic_strings
     if len(global_diagnostic_strings) > 10000:
         global_diagnostic_strings="RESET"
-    
-    print(f'Current job being processed: {flask.current_app.job_processing_status_dict}')
-    print(f'Current jobs completed: {flask.current_app.jobs_completed}')
-    print("queue is: ",list(app.jobs_to_be_processed_queue.queue))
+
+    #print(f'Current job being processed: {flask.current_app.job_processing_status_dict}')
+    #print(f'Current jobs completed: {flask.current_app.jobs_completed}')
+    #print("queue is: ",list(app.jobs_to_be_processed_queue.queue))
     job_name = json.loads(flask.request.data)["job_name"]
     is_finished = flask.current_app.jobs_completed.get(job_name,{"status":0,"file": ''})["status"]
     customer_id = json.loads(flask.request.data)["CustId"]
@@ -303,21 +316,26 @@ def shall_we_show_this_graph(short_description,local_formlist):
         return False
 
 def do_all_plots(job_name, app):
-    print("do_all_plots: A")
+    print("do_all_plots entry ", datetime.datetime.now())
+    sum = 0
+    for i in range(10000):
+        sum += 99
+    print("do_all_plots entry post speedtest ", datetime.datetime.now())
+    #print("do_all_plots: A")
     #global flask_abm.global_diagnostic_strings
     #if not colab:
     #    save_GUI_set_constants()
     # prep
     #plt.rcParams["figure.figsize"] = (18,12)
 
-    #plt.cla()
-    #plt.clf()
+    plt.cla()
+    plt.clf()
 
 
     my_dpi=96
-    print("do_all_plots: A2")
+    #print("do_all_plots: A2")
     plt.subplots(figsize=(1200/my_dpi, 700/my_dpi), dpi=my_dpi)
-    print("do_all_plots: A3")
+    #print("do_all_plots: A3")
     #plt.subplots_adjust(top=.98)
     #plt.subplots_adjust(bottom=.02)
     #plt.subplots_adjust(right=.98)
@@ -326,7 +344,7 @@ def do_all_plots(job_name, app):
     # count selected graphs
     numrows = 0
 
-    print("do_all_plots: B")
+    #print("do_all_plots: B")
 
     flask_abm.global_diagnostic_strings+="["
     for st in ["avsp","sp","sfs","gp","mon","wellmon","wellcon","wellmoncon","dtfe"]:
@@ -336,7 +354,9 @@ def do_all_plots(job_name, app):
 
     numrows += 1  # for the row of histograms at the bottom
     current_row = 1
-    print("do_all_plots: C")
+    #print("do_all_plots: C")
+
+    print("do_all_plots A ", datetime.datetime.now())
 
     # show selected graphs
     if int(app.global_job_dictionary[job_name]["avsp"]): #shall_we_show_this_graph("avsp",local_formlist):
@@ -352,6 +372,8 @@ def do_all_plots(job_name, app):
         plt.plot([flask_abm.econ_iters_to_do_this_time*frac, flask_abm.econ_iters_to_do_this_time], [minrhs,minrhs], color="#00ff00")
 
         current_row += 1
+
+    print("do_all_plots B ", datetime.datetime.now())
 
     if int(app.global_job_dictionary[job_name]["sp"]): #shall_we_show_this_graph("sp",local_formlist):
         plt.subplot(numrows,1,current_row)
@@ -417,6 +439,8 @@ def do_all_plots(job_name, app):
         plt.plot(list(range(flask_abm.econ_iters_to_do_this_time)), flask_abm.history_of_agents_well_money_plus_cons, ",")
         current_row += 1
 
+    print("do_all_plots C ", datetime.datetime.now())
+
     # show histograms
 
     plt.subplot(numrows, 4, (numrows-1) * 4 + 1)
@@ -434,9 +458,10 @@ def do_all_plots(job_name, app):
     plt.subplot(numrows, 4, (numrows-1) * 4 + 4)
     plt.ylabel("Purchased")
     plt.hist(flask_abm.num_units_purchased_on_last_shopping_trip_as_list, range=(0, max(flask_abm.num_units_purchased_on_last_shopping_trip_as_list) * 1.3), bins=20)
+    print("do_all_plots D ", datetime.datetime.now())
 
 def run_model(local_formlist):
-    print("run model: A")
+    #print("run model: A")
     #global flask_abm.global_diagnostic_strings
     #plt.close()
 
@@ -449,9 +474,11 @@ def run_model(local_formlist):
         flask_abm.iterate()
         flask_abm.append_current_state_to_history()
 
+    print("??loop done ", datetime.datetime.now())
     flask_abm.collect_data_for_plotting_histograms()
 
     do_all_plots(local_formlist)
+    print("??plots done ", datetime.datetime.now())
 
 
 flask_abm.initialise_model()
@@ -516,7 +543,7 @@ def home():
 
     all_vars_good = True
     if flask.request.method == 'POST':
-        print("server detects user just clicked go")
+        #print("server detects user just clicked go")
         for fi in formlist:
             try:
                 fi.user_value = flask.request.form[fi.form_var]
@@ -562,7 +589,7 @@ def home():
             all_vars_good = False
 
         id_read_from_form = str(flask.request.form['custId'])
-        print("Server has chewed on the form sent")
+        #print("Server has chewed on the form sent")
 
     user_counter += 1
 
@@ -597,7 +624,7 @@ def home():
 
             flask_abm.global_diagnostic_strings += ("Calling run_model() iters="+str(flask_abm.econ_iters_to_do_this_time)+" tsp="+str(flask_abm.TYPICAL_STARTING_PRICE)+" tsm="+str(flask_abm.TYPICAL_STARTING_MONEY)+" output to "+fname+"<br>")
 
-            print("About to call run model")
+            #print("About to call run model")
             run_model(formlist)
 
             try:
@@ -634,7 +661,7 @@ def home():
     return flask.render_template("index.htm",
         thestring='/static/'+fname,
         defid=id_for_hidden_thing,
-        params1="",#url_for('/mysite/static'),
+        params1="",#url_for('/static'),
         params2="Python version "+sys.version,
         params3="Matplotlib version "+matplotlib.__version__,
         params4="os.getcwd() is "+os.getcwd(),
@@ -697,7 +724,10 @@ global_formlist.append(FormItemStartSetup(                             "Days til
 
 
 
+print("*"*70)
+print("Running now II",datetime.datetime.now(),"*"*30)
 
 if __name__ == "__main__": # I think this is false on pythonanywhere.com
-    print("Launch")
+    print("Self launch ",datetime.datetime.now())
     app.run(debug=True)
+
